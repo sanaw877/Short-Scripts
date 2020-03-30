@@ -9,6 +9,11 @@ import pandas as pd
 import re
 from bs4 import BeautifulSoup
 import requests
+import cv2
+import pytesseract
+import shutil
+from skimage import io
+
 
 os.chdir(r'/Users/sundaswiqas/Downloads')
 # PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
@@ -25,7 +30,7 @@ bakeries = bakeries['DBA'].to_list()
 browser = webdriver.Chrome('/Users/sundaswiqas/Desktop/chromedriver')
 
 
-for bakery in bakeries[3:5]:
+for bakery in bakeries:
 	browser.get('http://www.google.com')
 	search_box = browser.find_element_by_name('q')
 	search_box.send_keys(bakery)
@@ -36,30 +41,35 @@ for bakery in bakeries[3:5]:
 		links = browser.find_elements_by_css_selector('div.r > a')
 		first_result = links[0].get_attribute("href")
 
+		browser.get(first_result)
 		time.sleep(5)
-
-		headers = {'User Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36'}
-		session = requests.Session()
-		page = session.get(first_result, headers=headers)
 	except:
-		pass
-	
-	if page.status_code == 200:
+		print('Nothing found.')
 
-		soup = BeautifulSoup(page.content, 'html.parser')
-		# print(soup.prettify())
+	links = browser.find_elements_by_xpath('//a[@href]')
+	menu_links = [link.get_attribute("href") for link in links if 'menu' in link.get_attribute("href")]
+	print(menu_links)
 
-		hrefs = []
-		for link in soup.find_all('a'):
-				href = link.get('href')
-				if href:
-					hrefs.append(href)
+	for href in menu_links:
+		browser.get(href)
+		content = browser.find_elements_by_css_selector('body')
+		images = browser.find_elements_by_css_selector('img')
 		
-		if hrefs:		
-			for href in hrefs:
-				if 'menu' in href:
-					href = soup.find_element_by_link_text()
+		print(href)
+		print(content[0].text)
 
-	time.sleep(10)
+		for img in images:
+			img = img.get_attribute('src')
+			r = requests.get(img, stream=True, headers={'User-agent': 'Mozilla/5.0'})
+			if r.status_code == 200:
+				with open("img.png", 'wb') as f:
+					r.raw.decode_content = True
+					shutil.copyfileobj(r.raw,f)
+			image = io.imread('img.png')
+			text = pytesseract.image_to_string(image)
+			print(text)
+		
+
+		time.sleep(5)
 	
 browser.quit()
