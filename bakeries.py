@@ -27,7 +27,7 @@ bakeries = bakeries[~bakeries['DBA'].str.contains(drop_kws,regex=True)]
 
 bakeries = bakeries['DBA'].to_list()
 
-browser = webdriver.Chrome('/Users/sundaswiqas/Desktop/chromedriver')
+browser = webdriver.Chrome('path')
 
 
 for bakery in bakeries:
